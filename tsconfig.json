@@ -1,0 +1,21 @@
+{
+  "ts-node": {
+    "compilerOptions": {
+      "module": "commonjs"
+    }
+  },
+  "compilerOptions": {
+    "outDir": "./out",
+    "module": "commonjs",
+    "lib": [ "es2015" ],
+    "target": "ES2015",
+    "types": ["node"],
+    "declaration": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+    "esModuleInterop": true
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "**/__tests__/*"]
+}

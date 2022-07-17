@@ -1,0 +1,1 @@
+export type PluginBase = (eventName: string, args: any[]) => {};

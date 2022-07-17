@@ -1,2 +1,5 @@
-/node_modules/
+build/
+manualtests/
+node_modules/
 .env
+db.sqlite3
