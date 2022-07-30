@@ -8,4 +8,3 @@ if (!process.env.TOKEN) {
 }
 
 client.login(process.env.TOKEN);
-client.invokePluginEvent('l bozo', ['h']);
