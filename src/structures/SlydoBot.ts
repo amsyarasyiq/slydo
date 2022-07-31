@@ -1,7 +1,8 @@
 import { Client, Collection, GatewayIntentBits, Partials, SlashCommandBuilder, CommandInteraction } from "discord.js";
-import { PluginBase } from "../interfaces/PluginBase";
+import { PluginEvents, PluginBase } from "../interfaces/PluginBase";
 import * as fs from 'fs';
 import path from "path";
+import { config } from "../index";
 
 export default class SlydoBot extends Client {
     slashCommands: Collection<string, { data: SlashCommandBuilder, execute: (interaction: CommandInteraction) => {}}> = new Collection();
@@ -42,9 +43,9 @@ export default class SlydoBot extends Client {
         })();
     }
 
-    invokePluginEvent(eventName: string, args: any[]) {
+    invokePluginEvent(eventName: PluginEvents, args: any[]) {
         this.plugins.forEach(plugin => {
-            plugin(eventName, args);
+            plugin.invokeEvent(eventName, args);
         });
     }
 
@@ -54,11 +55,16 @@ export default class SlydoBot extends Client {
         const pluginFolders = await fs.promises.readdir(pluginsPath, { withFileTypes:true });
 
         for (const pluginName of pluginFolders.filter(dirent => dirent.isDirectory()).map(dirent => dirent.name)) {
-            console.log(`Loading plugin: ${pluginName}`);
-            const plugin = (await import(path.join(pluginsPath, pluginName)))?.default;
+            const plugin = (await import(path.join(pluginsPath, pluginName)))?.metadata;
 
-            if (!plugin) continue;
-            plugin('load', [this]);
+            if (config.diasbledPlugins.includes(plugin.name)) {
+                console.log(`Skipping disabled plugin: ${plugin.name}`);
+                continue;
+            }
+
+            console.log(`Loading plugin: ${plugin.name} (${plugin.version})`);
+
+            plugin.invokeEvent('load', this);
             this.plugins.push(plugin);
         }
     }
