@@ -8,11 +8,16 @@ export default {
 
     // executed when event is fired
     execute: async (interaction: Interaction) => {
-        if (!interaction.isChatInputCommand()) return;
+        const slydoClient = interaction.client as SlydoBot;
+        if (interaction.isChatInputCommand()) {
+            const command: any = slydoClient.slashCommands.get(interaction.commandName);
+            if (!command) return;
 
-        const command: any = (interaction.client as SlydoBot).slashCommands.get(interaction.commandName);
-        if (!command) return;
+            command.execute(interaction);
+        }
 
-        command.execute(interaction);
+        if (interaction.isSelectMenu()) {
+            slydoClient.plugins.find(x => interaction.customId.split(":")?.[0] === x.name)?.handleSelectMenu(interaction);
+        }
     }
 };

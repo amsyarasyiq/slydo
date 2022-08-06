@@ -1,4 +1,4 @@
-import { Collection, CommandInteraction, SlashCommandBuilder } from "discord.js";
+import { Collection, CommandInteraction, SelectMenuInteraction, SlashCommandBuilder } from "discord.js";
 
 export type SlashCommandDict = Collection<string, { data: SlashCommandBuilder, execute: ((interaction: CommandInteraction) => Promise<void>) | undefined }>;
 
@@ -21,4 +21,7 @@ export abstract class PluginBase {
 
     load(): void { return undefined; }
     onEventSubscriptions(): void { return undefined; }
+    handleSelectMenu(interaction: SelectMenuInteraction): void { return undefined; }
 }
+
+// TODO: command system similar select menu system for plugins
