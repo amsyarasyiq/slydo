@@ -5,6 +5,7 @@ import path from 'node:path';
 import { REST } from '@discordjs/rest';
 import { Routes } from 'discord.js';
 import { clientId } from './config.json';
+import { PluginBase } from './src/structures/PluginBase';
 
 const commands: any[] = [];
 const commandsPath = path.join(__dirname, 'src/commands/slash');
@@ -21,10 +22,10 @@ const pluginsPath = path.join(__dirname, 'plugins');
 const plugins = fs.readdirSync(pluginsPath, { withFileTypes:true }).filter(dirent => dirent.isDirectory()).map(x => x.name);
 
 for (const pluginFolders of plugins) {
-    const plugin = require(path.join(pluginsPath, pluginFolders))?.metadata;
+    const plugin: PluginBase = require(path.join(pluginsPath, pluginFolders)).default;
     if (!plugin) continue;
 
-    plugin.invokeEvent('onCommandsDeployment', [commands]);
+	plugin.onCommandsDeployment().forEach(x => commands.push(x.toJSON()));
 }
 
 if (!process.env.TOKEN) {

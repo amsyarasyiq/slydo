@@ -1,8 +1,8 @@
 {
   "name": "slydo",
   "license": "MIT",
-  "author": { 
-    "name": "slyde99" 
+  "author": {
+    "name": "slyde99"
   },
   "devDependencies": {
     "@types/jest": "^28.1.6",
@@ -17,13 +17,14 @@
     "typescript": "^4.7.4"
   },
   "scripts": {
-    "start": "ts-node src/index.ts",
+    "start": "ts-node src",
     "compile": "tsc"
   },
   "dependencies": {
     "discord.js": "^14.1.1",
     "dotenv": "^16.0.1",
     "fs": "^0.0.1-security",
+    "node-fetch": "^3.2.10",
     "sequelize": "^6.21.3",
     "sqlite3": "^5.0.10",
     "ts-node": "^10.9.1"

@@ -1,11 +1,11 @@
 import { Client, Collection, GatewayIntentBits, Partials, SlashCommandBuilder, CommandInteraction } from "discord.js";
-import { PluginEvents, PluginBase } from "../interfaces/PluginBase";
+import { PluginBase, SlashCommandDict } from "./PluginBase";
 import * as fs from 'fs';
 import path from "path";
 import { config } from "../index";
 
 export default class SlydoBot extends Client {
-    slashCommands: Collection<string, { data: SlashCommandBuilder, execute: (interaction: CommandInteraction) => {}}> = new Collection();
+    slashCommands: SlashCommandDict = new Collection();
 
     plugins: PluginBase[] = [];
     
@@ -43,19 +43,14 @@ export default class SlydoBot extends Client {
         })();
     }
 
-    invokePluginEvent(eventName: PluginEvents, args: any[]) {
-        this.plugins.forEach(plugin => {
-            plugin.invokeEvent(eventName, args);
-        });
-    }
-
     // Register plugins
     private async registerPlugins() {
         const pluginsPath = path.join(__dirname, "../../plugins");
         const pluginFolders = await fs.promises.readdir(pluginsPath, { withFileTypes:true });
 
         for (const pluginName of pluginFolders.filter(dirent => dirent.isDirectory()).map(dirent => dirent.name)) {
-            const plugin = (await import(path.join(pluginsPath, pluginName)))?.metadata;
+            const PluginClass = (await import(path.join(pluginsPath, pluginName))).default;
+            const plugin: PluginBase = new PluginClass();
 
             if (config.diasbledPlugins.includes(plugin.name)) {
                 console.log(`Skipping disabled plugin: ${plugin.name}`);
@@ -63,9 +58,9 @@ export default class SlydoBot extends Client {
             }
 
             console.log(`Loading plugin: ${plugin.name} (${plugin.version})`);
-
-            plugin.invokeEvent('load', this);
             this.plugins.push(plugin);
+
+            plugin.load();
         }
     }
 
@@ -84,7 +79,7 @@ export default class SlydoBot extends Client {
             }
         }
 
-        this.invokePluginEvent('onSubscribeEvents', [this]);
+        this.plugins.forEach(x => x.onEventSubscriptions());
     }
 
     // Register commands
@@ -98,6 +93,6 @@ export default class SlydoBot extends Client {
             this.slashCommands.set(command.default.data.name, command.default);
         }
 
-        this.invokePluginEvent('onRegisterCommands', [this]);
+        this.plugins.forEach(x => x.onRegisterCommands(this.slashCommands));
     }
 }
