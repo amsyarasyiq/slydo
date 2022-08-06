@@ -22,8 +22,10 @@ const pluginsPath = path.join(__dirname, 'plugins');
 const plugins = fs.readdirSync(pluginsPath, { withFileTypes:true }).filter(dirent => dirent.isDirectory()).map(x => x.name);
 
 for (const pluginFolders of plugins) {
-    const plugin: PluginBase = require(path.join(pluginsPath, pluginFolders)).default;
-    if (!plugin) continue;
+    const PluginClass = require(path.join(pluginsPath, pluginFolders))?.default;
+    const plugin: PluginBase = new PluginClass();
+    
+	if (!plugin) continue;
 
 	plugin.onCommandsDeployment().forEach(x => commands.push(x.toJSON()));
 }
