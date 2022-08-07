@@ -28,5 +28,3 @@ export abstract class PluginBase {
     selectMenuIds: string[] = [];
     commandBuilders: SlashCommandBuilder[] = [];
 }
-
-// TODO: command system similar select menu system for plugins
