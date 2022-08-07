@@ -4,6 +4,6 @@ const registeredSelectMenu: { [key: string]: string } = {};
 
 export const getUniqueSelectId = (plugin: PluginBase): string => {
     const uniqueId = `${plugin.name}:${Math.random().toString(36).substring(2, 15)}}`;
-    registeredSelectMenu[plugin.name] = uniqueId;
+    plugin.selectMenuIds.push(uniqueId);
     return uniqueId;
 };

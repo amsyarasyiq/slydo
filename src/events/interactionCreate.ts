@@ -9,7 +9,16 @@ export default {
     // executed when event is fired
     execute: async (interaction: Interaction) => {
         const slydoClient = interaction.client as SlydoBot;
+
         if (interaction.isChatInputCommand()) {
+            const plugin = slydoClient.plugins.find(p => p.commandBuilders.map(x => x.name).includes(interaction.commandName));
+
+            if (plugin) {
+                plugin.handleCommandInteraction(interaction);
+                return;
+            }
+
+            // native commands
             const command: any = slydoClient.slashCommands.get(interaction.commandName);
             if (!command) return;
 
@@ -17,7 +26,13 @@ export default {
         }
 
         if (interaction.isSelectMenu()) {
-            slydoClient.plugins.find(x => interaction.customId.split(":")?.[0] === x.name)?.handleSelectMenu(interaction);
+            const plugin = slydoClient.plugins.find(p => p.ownSelectMenu(interaction));
+            if (plugin) {
+                plugin.handleSelectMenuInteraction(interaction);
+                return;
+            }
+
+            // native select menus
         }
     }
 };

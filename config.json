@@ -2,7 +2,7 @@
     "prefix": "s!",
     "botOwner": "492949202121261067",
     "clientId": "998071543894642801",
-    "diasbledPlugins": [
+    "disabledPlugins": [
         "gochiusaPicsCommand"
     ]
 }

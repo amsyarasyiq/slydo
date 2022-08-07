@@ -12,16 +12,21 @@ export abstract class PluginBase {
     abstract get name(): string;
     abstract get version(): string;
 
-    get description(): string | undefined {
-        return undefined;
-    }
+    get description(): string | undefined { return undefined; }
 
     abstract onCommandsDeployment(): SlashCommandBuilder[];
-    abstract onRegisterCommands(collection: SlashCommandDict): void;
 
     load(): void { return undefined; }
     onEventSubscriptions(): void { return undefined; }
-    handleSelectMenu(interaction: SelectMenuInteraction): void { return undefined; }
+
+    ownSelectMenu(interaction: SelectMenuInteraction): boolean { return this.selectMenuIds.includes(interaction.customId); }
+
+    // interaction handlers
+    async handleCommandInteraction(_interaction: CommandInteraction): Promise<void> { return undefined; }
+    async handleSelectMenuInteraction(_interaction: SelectMenuInteraction): Promise<void> { return undefined; }
+
+    selectMenuIds: string[] = [];
+    commandBuilders: SlashCommandBuilder[] = [];
 }
 
 // TODO: command system similar select menu system for plugins

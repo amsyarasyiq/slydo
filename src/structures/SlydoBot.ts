@@ -52,7 +52,7 @@ export default class SlydoBot extends Client {
             const PluginClass = (await import(path.join(pluginsPath, pluginName))).default;
             const plugin: PluginBase = new PluginClass();
 
-            if (config.diasbledPlugins.includes(plugin.name)) {
+            if (config.disabledPlugins.includes(plugin.name)) {
                 console.log(`Skipping disabled plugin: ${plugin.name}`);
                 continue;
             }
@@ -92,7 +92,5 @@ export default class SlydoBot extends Client {
             const command = await import(filePath);
             this.slashCommands.set(command.default.data.name, command.default);
         }
-
-        this.plugins.forEach(x => x.onRegisterCommands(this.slashCommands));
     }
 }
