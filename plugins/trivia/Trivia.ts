@@ -1,53 +1,70 @@
-import { ActionRowBuilder, APISelectMenuOption, BaseInteraction, Message, MessageOptions, RestOrArray, SelectMenuBuilder, SelectMenuComponentOptionData, SelectMenuInteraction, SelectMenuOptionBuilder } from "discord.js";
+import { ActionRowBuilder, APISelectMenuOption, BaseInteraction, Message, MessageOptions, RestOrArray, SelectMenuBuilder, SelectMenuComponentOptionData, SelectMenuInteraction, SelectMenuOptionBuilder, TextChannel } from "discord.js";
 import Trivia from ".";
 import { getUniqueSelectId } from "../../src/handler/menuHelper";
 import { TriviaBuilder } from "./interface/TriviaBuilder";
 import { default as TriviaHandler } from "./databaseHandler";
 import { Responses } from "./interface/TriviaResponse";
 
-// TODO: load triviabase from database
 export class TriviaBase {
     triviaId?: number;
-    question: string;
-    choices: Partial<APISelectMenuOption>[];
+    question?: string;
+    choices?: Partial<APISelectMenuOption>[];
     answer: number;
     attachments?: string[];
-
+    
+    isRestored: boolean = false;
     guessedUsers: string[] = [];
-    messageReferred?: Message<boolean>;
+    messageReferred?: string;
 
-    constructor({ question, choices, answer, attachments }: TriviaBuilder) {
+    constructor({ question, choices, answer, attachments, isRestoration, responseIds }: TriviaBuilder) {
+        if (isRestoration) {
+            this.answer = answer;
+            this.isRestored = true;
+            this.guessedUsers.push(...responseIds!);
+            return;
+        }
+
         this.question = question;
         this.choices = choices;
         this.answer = answer;
         this.attachments = attachments;
+        this.sync();
     }
 
     async sync(): Promise<void> {
-        this.triviaId ??= await TriviaHandler.createNewTriviaId();
+        this.triviaId ??= await TriviaHandler.createTrivia(this.answer);
     }
 
     async send(interaction: BaseInteraction): Promise<Message<boolean> | undefined> {
+        if (this.isRestored) {
+            console.error(`Tried to send a restored trivia. Cancelling...`);
+            return;
+        }
+
         const row: any = new ActionRowBuilder().addComponents(
             new SelectMenuBuilder()
                 .setCustomId(getUniqueSelectId(Trivia.instance))
                 .setPlaceholder('Choose your answer')
-                .addOptions(...await Promise.all(this.choices.map(async(choice: any, index: number) => {
+                .addOptions(...this.choices?.map((choice: any, index: number) => {
                     choice.value = `${this.triviaId?.toString()}:${index.toString()}`;
                     return choice;
-                })))
+                }))
         );
 
-        return this.messageReferred = await interaction.channel?.send({
+        const message = await interaction.channel?.send({
             content: this.question,
             components: [row],
             files: this.attachments,
         });
+
+        this.messageReferred = `${message?.channel?.id}:${message?.id}`;
+        TriviaHandler.updateMessageReference(this.triviaId!, this.messageReferred!);
+
+        return message;
     }
 
     async update(userId: string, response: string): Promise<Responses> {
-        const resId = parseInt(response.split(':')[0]);
-        const answer = parseInt(response.split(':')[1]);
+        const [resId, answer] = response.split(':').map(parseInt);
         if (resId !== this.triviaId) {
             console.error(`${userId} tried to answer ${resId} but we are on ${this.triviaId}`);
             return Responses.INVALID_TRIVIA_ID;
@@ -64,9 +81,19 @@ export class TriviaBase {
         return answer === this.answer ? Responses.CORRECT : Responses.INCORRECT;
     }
 
-    async end() {
-        await TriviaHandler.endTrivia(this.triviaId!);
-        await this.messageReferred?.edit({ content: `*[The trivia ended <t:${Math.floor(new Date().getTime() / 1000)}:R>]*\n${this.messageReferred!.content}`, components: [] });
+    async end(interaction: BaseInteraction): Promise<void> {
+        const [channelId, messageId] = this.messageReferred!.split(':');
+        let channel: TextChannel | null = await interaction.client.channels?.fetch(channelId) as TextChannel;
+        let message = await channel?.messages.fetch(messageId);
+
+        if (!message) {
+            console.error(`Could not find message ${this.messageReferred} for trivia ${this.triviaId}`);
+            return;
+        }
+
+        const time = await TriviaHandler.endTrivia(this.triviaId!);
+
+        await message.edit({ content: `*[The trivia ended <t:${time}:R>]*\n${message.content}`, components: [] });
     }
 
     async isTrivia(value: string): Promise<boolean> {
@@ -74,7 +101,7 @@ export class TriviaBase {
     }
 
     addOption(...options: any[]): TriviaBase {
-        this.choices.push(...options);
+        this.choices?.push(...options);
         return this;
     }
 }

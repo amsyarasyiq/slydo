@@ -34,9 +34,12 @@ export default class Trivia extends PluginBase {
             ); 
     }
 
-    load() {
+    async load() {
         this.loadSubcommands();
         Trivia.instance ??= this;
+
+        const restoredTrivias = await TriviaHandler.getAllTrivia();
+        Trivia.triviaInstances.push(...restoredTrivias);
     }
 
     onCommandsDeployment(): SlashCommandBuilder[] {
@@ -47,41 +50,44 @@ export default class Trivia extends PluginBase {
     async handleCommandInteraction(interaction: CommandInteraction) {
         if (interaction.commandName !== "trivia") return;
 
-        if ((interaction.options as any).getSubcommand() === "end") {
-            const triviaId = (interaction.options as any).getInteger("id");
-            const trivia = Trivia.triviaInstances.find(t => t.triviaId === triviaId);
-            if (!trivia) {
-                await interaction.reply({ content: "Couldn't find a trivia instance with that ID", ephemeral: true });
+        switch ((interaction.options as any).getSubcommand()) {
+            case "start": {
+                const trivia = new TriviaBase({
+                    question: "",
+                    choices: [
+                        { label: "チョコリズムチョコルール", description: "Choco Rhythm Choco Rule" }, 
+                        { label: "COCOATIC BAR" }, 
+                        { label: "きらめきカフェタイム", description: "Kirameki Café Time" }, 
+                        { label: "全天候型いらっしゃいませ", description: "Zentenkougata Irasshaimase" },
+                        { label: "日常デコレーション", description: "Nichijou Decoration" },
+                        { label: "きらきら印を見つけたら", description: "Kirakirajirushi wo Mitsuketara" }
+                    ],
+                    answer: 0,
+                    attachments: [
+                        "https://cdn.discordapp.com/attachments/1003338798253494342/1004977058306326578/song.mp4"
+                    ],
+                    isRestoration: false
+                });
+        
+                await trivia.sync();
+                trivia.question = `Trive ${trivia.triviaId} | What is the title of the song?`;
+        
+                Trivia.triviaInstances.push(trivia);
+                await trivia.send(interaction);
+                break;
+            } case "end": {
+                const triviaId = (interaction.options as any).getInteger("id");
+                const trivia = Trivia.triviaInstances.find(t => t.triviaId === triviaId);
+                if (!trivia) {
+                    await interaction.reply({ content: "Couldn't find a trivia instance with that ID", ephemeral: true });
+                    return;
+                }
+
+                await trivia.end(interaction);
+                await interaction.reply({ content: "Successfully ended trivia!", ephemeral: true });
                 return;
             }
-            await trivia.end();
-            await interaction.reply({ content: "Trivia game ended", ephemeral: true });
-            return;
         }
-
-        if ((interaction.options as any).getSubcommand() !== "start") return;
-
-        const trivia = new TriviaBase({
-            question: "",
-            choices: [
-                { label: "チョコリズムチョコルール", description: "Choco Rhythm Choco Rule" }, 
-                { label: "COCOATIC BAR" }, 
-                { label: "きらめきカフェタイム", description: "Kirameki Café Time" }, 
-                { label: "全天候型いらっしゃいませ", description: "Zentenkougata Irasshaimase" },
-                { label: "日常デコレーション", description: "Nichijou Decoration" },
-                { label: "きらきら印を見つけたら", description: "Kirakirajirushi wo Mitsuketara" }
-            ],
-            answer: 0,
-            attachments: [
-                "https://cdn.discordapp.com/attachments/1003338798253494342/1004977058306326578/song.mp4"
-            ]
-        });
-
-        await trivia.sync();
-        trivia.question = `Trive ${trivia.triviaId} | What is the title of the song?`;
-
-        Trivia.triviaInstances.push(trivia);
-        await trivia.send(interaction);
     }
 
 
@@ -97,12 +103,12 @@ export default class Trivia extends PluginBase {
         switch (response) {
             case Responses.CORRECT: {
                 const { won, lost } = await TriviaHandler.getUserStats(interaction.member!.user.id);
-                content = `You're correct! You've got ${won} wins and ${lost} losses so far.`;
+                content = `You're correct! You've got ${won} correct and ${lost} wrong guess(es) so far.`;
                 break;
             }
             case Responses.INCORRECT: {
                 const { won, lost } = await TriviaHandler.getUserStats(interaction.member!.user.id);
-                content = `You're wrong! You've got ${won} wins and ${lost} losses so far.`;
+                content = `You're wrong, better luck next time! You've got ${won} correct and ${lost} wrong guess(es) so far.`;
                 break;
             }
             case Responses.INVALID_TRIVIA_ID:
@@ -121,7 +127,7 @@ export default class Trivia extends PluginBase {
 
     async getTriviaInstance(response: string): Promise<TriviaBase | undefined> {
         const resId = parseInt(response.split(':')[0]);
-        const trivia = Trivia.triviaInstances.find(t => resId === t.triviaId);
+        const trivia = Trivia.triviaInstances.find(t => t.triviaId === resId);
         
         if (!trivia) {
             console.log({ content: "No trivia instance found" });
