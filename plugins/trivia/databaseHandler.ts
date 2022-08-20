@@ -80,6 +80,7 @@ export default {
                 responseIds: (instance as any).responseIds
             });
 
+            trivia.triviaId = instance.getDataValue("triviaId");
             trivia.messageReferred = instance.getDataValue("triviaMessage");
             return trivia;
         });
