@@ -102,10 +102,18 @@ export default {
         instance.update({ responseIds: userId });
         won === true ? instance.increment("wonCount") : instance.increment("lostCount");
 
-        const [userStats, isNew] = await triviaUserStatsTable.findOrCreate({ where: { userId }, defaults: { wonCount: 0, responsesCount: 0 } });
+        await instance.save();
 
-        !won ?? userStats.increment("wonCount");
+        const [userStats, isNew] = await triviaUserStatsTable.findOrCreate({
+             where: { userId }, 
+             defaults: { wonCount: 0, responsesCount: 0 } 
+        });
+
+        if (won) 
+            userStats.increment("wonCount");
         userStats.increment("responsesCount");
+
+        await userStats.save();
     },
 
     getUserStats: async(userId: string): Promise<{ won: number, lost: number }> => {
@@ -113,9 +121,14 @@ export default {
 
         const userStats = await triviaUserStatsTable.findOne({ where: { userId } });
 
+        if (!userStats) {
+            console.warn(`No user stats found for user ${userId}`);
+            return { won: 0, lost: 0 };
+        }
+
         return {
-            won: userStats?.getDataValue("wonCount") ?? 0,
-            lost: userStats?.getDataValue("responsesCount") - userStats?.getDataValue("wonCount") ?? 0
+            won: userStats.getDataValue("wonCount"),
+            lost: userStats.getDataValue("responsesCount") - userStats.getDataValue("wonCount")
         };
     },
 

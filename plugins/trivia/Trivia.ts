@@ -28,7 +28,6 @@ export class TriviaBase {
         this.choices = choices;
         this.answer = answer;
         this.attachments = attachments;
-        this.sync();
     }
 
     async sync(): Promise<void> {
@@ -58,13 +57,14 @@ export class TriviaBase {
         });
 
         this.messageReferred = `${message?.channel?.id}:${message?.id}`;
-        TriviaHandler.updateMessageReference(this.triviaId!, this.messageReferred!);
+        await TriviaHandler.updateMessageReference(this.triviaId!, this.messageReferred!);
 
         return message;
     }
 
     async update(userId: string, response: string): Promise<Responses> {
-        const [resId, answer] = response.split(':').map(parseInt);
+        const [resId, answer] = response.split(':').map(x => parseInt(x));
+
         if (resId !== this.triviaId) {
             console.error(`${userId} tried to answer ${resId} but we are on ${this.triviaId}`);
             return Responses.INVALID_TRIVIA_ID;
@@ -76,8 +76,8 @@ export class TriviaBase {
         }
 
         this.guessedUsers.push(userId);
-
-        TriviaHandler.updateUserTrivia(userId, this.triviaId, answer === this.answer);
+        
+        await TriviaHandler.updateUserTrivia(userId, this.triviaId, answer === this.answer);
         return answer === this.answer ? Responses.CORRECT : Responses.INCORRECT;
     }
 
