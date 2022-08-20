@@ -31,6 +31,8 @@ export default class Trivia extends PluginBase {
                         .setDescription('the ID of the trivia game to end')
                         .setRequired(true)
                 )
+            ).addSubcommand(subCommmand => 
+                subCommmand.setName('stats').setDescription('your current stats on trivia')
             ); 
     }
 
@@ -74,7 +76,7 @@ export default class Trivia extends PluginBase {
         
                 Trivia.triviaInstances.push(trivia);
                 await trivia.send(interaction);
-                break;
+                return;
             } case "end": {
                 const triviaId = (interaction.options as any).getInteger("id");
                 const trivia = Trivia.triviaInstances.find(t => t.triviaId === triviaId);
@@ -85,6 +87,10 @@ export default class Trivia extends PluginBase {
 
                 await trivia.end(interaction);
                 await interaction.reply({ content: "Successfully ended trivia!", ephemeral: true });
+                return;
+            } case "stats": {
+                const { won, lost } = await TriviaHandler.getUserStats(interaction.member!.user.id);
+                await interaction.reply({ content: `You've got ${won} correct and ${lost} wrong guess(es) so far.`, ephemeral: true });
                 return;
             }
         }
